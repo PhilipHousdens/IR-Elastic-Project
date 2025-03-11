@@ -1,9 +1,24 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.db import get_db
-from model.models import Recipe
+from .model import Recipe, User
+from .utils import verify_token
 
 app = FastAPI()
+
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = verify_token(token)
+    if payload is None:
+        raise credentials_exception
+    user = db.query(User).filter(User.id == payload.get("sub")).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
 # Endpoint to search recipes by name or ingredient
 @app.get("/recipes/search/")

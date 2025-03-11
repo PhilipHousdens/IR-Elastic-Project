@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-import datetime 
+from model.user import User
 
 # Base class for SQLAlchemy models
 Base = declarative_base()
@@ -38,16 +38,6 @@ class Recipe(Base):
     RecipeInstructions = Column(String)
     image_link = Column(String)
     text = Column(String)
-
-# Define User model
-class User(Base):
-    __tablename__ = 'users'
-    __table_args__ = {'schema': 'recipes_tb'} 
-
-    user_id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True)
-    email = Column(String, unique=True)
-    hashed_password = Column(String)
 
 # Define Bookmark model
 class Bookmark(Base):
