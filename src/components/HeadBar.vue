@@ -15,9 +15,9 @@
         <div>
             <div class="flex space-x-4">
                 <div class="bg-white px-3 py-2 rounded-3xl">
-                    <p>
+                    <router-link to="/login">
                         Sign In
-                    </p>
+                    </router-link>
                 </div>
                 <div class="bg-white px-3 py-2 rounded-3xl">
                     <p>
