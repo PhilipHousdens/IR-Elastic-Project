@@ -1,11 +1,19 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database.db import get_db
-from .model import Recipe, User
-from .utils import verify_token
+from model.recipe import Recipe
+from model.user import UserResponse, UserCreate
+from model.user import User  # Assuming you have a User model defined
+from utils.passswordHash import hash_password, verify_password  # Assuming these functions are implemented
+from utils.JWTToken import verify_token, create_access_token
 
 app = FastAPI()
 
+# Define OAuth2PasswordBearer to handle the token extraction from the request header
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+# Define the function that will extract the current user from the database using the JWT token
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -23,7 +31,6 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 # Endpoint to search recipes by name or ingredient
 @app.get("/recipes/search/")
 def search_recipes(query: str, db: Session = Depends(get_db)):
-    # Perform a search query on the recipe name or ingredient
     results = db.query(Recipe).filter(Recipe.Name.ilike(f"%{query}%")).all()
     return results
 
@@ -46,3 +53,36 @@ def read_recipe(recipe_id: int, db: Session = Depends(get_db)):
         return recipe
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Endpoint for user registration
+@app.post("/register", response_model=UserResponse)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Hash the password and save user
+    hashed_password = hash_password(user.password)
+    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# Endpoint for user login and JWT token generation
+@app.post("/login")
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create JWT token
+    access_token = create_access_token(data={"sub": user.id})
+    return {"access_token": access_token, "token_type": "bearer"}

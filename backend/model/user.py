@@ -1,14 +1,9 @@
-from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declarative_base
 from pydantic import BaseModel
-import passlib.hash as hash
+from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
-
-# User database model
 class User(Base):
     __tablename__ = "users"
 
@@ -17,6 +12,9 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+
+    bookmarks = relationship("Bookmark", back_populates="user")  # Define in user.py
+
 
 # Pydantic model for user creation
 class UserCreate(BaseModel):
