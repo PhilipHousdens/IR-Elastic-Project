@@ -2,9 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database.db import get_db
-from model.recipe import Recipe
-from model.user import UserResponse, UserCreate
-from model.user import User  # Assuming you have a User model defined
+from model.dbModels import Recipe, UserResponse, UserCreate, User
 from utils.passswordHash import hash_password, verify_password  # Assuming these functions are implemented
 from utils.JWTToken import verify_token, create_access_token
 
@@ -66,7 +64,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
     # Hash the password and save user
     hashed_password = hash_password(user.password)
-    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+    db_user = User(username=user.username, email=user.email, password_hash=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -76,7 +74,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.post("/login")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -84,5 +82,5 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
 
     # Create JWT token
-    access_token = create_access_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": user.user_id})
     return {"access_token": access_token, "token_type": "bearer"}
