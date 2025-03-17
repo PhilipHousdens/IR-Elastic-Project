@@ -61,7 +61,7 @@ class UserCreate(BaseModel):
 
 # Pydantic model for user response (without password)
 class UserResponse(BaseModel):
-    id: int
+    user_id: int
     username: str
     email: str
 

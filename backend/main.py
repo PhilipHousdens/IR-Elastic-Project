@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database.db import get_db
@@ -7,6 +9,20 @@ from utils.passswordHash import hash_password, verify_password  # Assuming these
 from utils.JWTToken import verify_token, create_access_token
 
 app = FastAPI()
+
+
+origins = [
+    "http://localhost:5173",  # Add the URL where your frontend is served
+]
+
+# Allow the frontend to communicate with the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Define OAuth2PasswordBearer to handle the token extraction from the request header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -70,9 +86,14 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 # Endpoint for user login and JWT token generation
 @app.post("/login")
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(form_data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
