@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import requests
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from database.db import get_db
@@ -42,11 +43,55 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         raise credentials_exception
     return user
 
+def create_index():
+    url = "http://localhost:7700/indexes"
+    index_data = {
+        "uid": "recipes",  # Index name
+        "primaryKey": "id"  # Primary key (unique identifier)
+    }
+    response = requests.post(url, json=index_data)
+    if response.status_code == 201:
+        print("Index created successfully.")
+    else:
+        print(f"Error creating index: {response.json()}")
+
+# Function to index recipes in Meilisearch
+def index_recipes(db: Session, batch_size=1000):
+    recipes = db.query(Recipe).all()
+    data = [{"id": r.RecipeId, "name": r.Name, "description": r.Description, "keywords": r.Keywords, "image": r.image_link} for r in recipes]
+    
+    # Process data in batches
+    for i in range(0, len(data), batch_size):
+        batch = data[i:i + batch_size]
+        response = requests.post("http://localhost:7700/indexes/recipes/documents", json=batch)
+        print(f"Batch {i//batch_size + 1} indexed, response: {response.status_code}")
+    return {"message": "Indexing completed in batches"}
+
+# FastAPI startup event to create the index and index recipes when the app starts
+@app.on_event("startup")
+async def startup_event():
+    # Create a new database session by calling get_db()
+    db = next(get_db())  # Ensure to get the session object, use next() to retrieve it
+    create_index()  # Create the index in Meilisearch
+    index_recipes(db)  # Populate the index with recipes
+
+# Example endpoint to trigger indexing manually
+@app.post("/index-recipes")
+def index_recipes_endpoint(db: Session = Depends(get_db)):
+    try:
+        index_recipes(db)
+        return {"message": "Recipes indexed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error indexing recipes: {e}")
+
 # Endpoint to search recipes by name or ingredient
 @app.get("/recipes/search/")
-def search_recipes(query: str, db: Session = Depends(get_db)):
-    results = db.query(Recipe).filter(Recipe.Name.ilike(f"%{query}%")).all()
-    return results
+def search_recipes(query: str):
+    print(f"Received search query: {query}")
+    response = requests.get(f"http://localhost:7700/indexes/recipes/search?q={query}")
+    data = response.json()
+    return {"results": data.get("detail", [])}
+
 
 # Endpoint to get all recipes
 @app.get("/recipes/")
