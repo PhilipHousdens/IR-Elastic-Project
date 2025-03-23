@@ -4,6 +4,7 @@ import HeadBar from '../components/HeadBar.vue';
 import axios from 'axios';
 
 interface Bookmark {
+  bookmark_id: number;
   recipe_id: number;
   folder_id: string;
   user_id: string;
@@ -91,6 +92,28 @@ const fetchAllBookmarks = async () => {
   }
 };
 
+const deleteBookmark = async (id: number) => {
+  const token = localStorage.getItem('access_token');
+    console.log('Token retrieved:', token);
+
+    if (!token) {
+        console.error('Token is missing, please log in.');
+        return;
+    }
+
+    try {
+        await axios.delete(`http://localhost:8000/bookmarks/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        });
+
+        bookmarks.value = bookmarks.value.filter(book => book.bookmark_id !== id);
+    } catch (error: any) {
+        console.error('Error deleting bookmarks:', error);
+    }
+}
+
 onMounted(() => {
   const bookmarkId = window.location.pathname.split('/').pop(); 
 
@@ -128,7 +151,9 @@ onMounted(() => {
                     </div>
                 </div>
             </router-link>
-            
+            <button class="text-end text-red-400 w-full py-1 px-2" @click="deleteBookmark(book.bookmark_id); $event.stopPropagation() ">
+                DELETE
+            </button>
           </li>
         </ul>
       </div>

@@ -11,6 +11,17 @@ interface Folder {
   average_rating: number;
 }
 
+interface Bookmark {
+  bookmark_id: number;
+  recipe_id: number;
+  folder_id: string;
+  user_id: string;
+  rating: string;
+  recipeDetails: any;
+}
+
+const bookmarks = ref<Bookmark[]>([]);
+
 const folders = ref<Folder[]>([]);
 const folderName = ref('');
 const folderDescription = ref('');
@@ -41,6 +52,28 @@ const fetchAllFolders = async () => {
     errorMessage.value = 'Error fetching folders. Please try again later.';
   }
 };
+
+const deleteBookmark = async () => {
+  const token = localStorage.getItem('access_token');
+    console.log('Token retrieved:', token);
+
+    if (!token) {
+        console.error('Token is missing, please log in.');
+        return;
+    }
+
+    try {
+        await axios.delete(`http://localhost:8000/bookmarks/`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        });
+
+        bookmarks.value = bookmarks.value.filter(book => book.bookmark_id !== id);
+    } catch (error: any) {
+        console.error('Error deleting bookmarks:', error);
+    }
+}
 
 
 // Create new folder
@@ -91,26 +124,42 @@ const createFolder = async () => {
 
 // Delete Folder
 const deletFolder = async (id: number) => {
-    const token = localStorage.getItem('access_token');
-    console.log('Token retrieved:', token);
+  const token = localStorage.getItem('access_token');
+  console.log('Token retrieved:', token);
 
-    if (!token) {
-        console.error('Token is missing, please log in.');
-        return;
-    }
+  if (!token) {
+    console.error('Token is missing, please log in.');
+    return;
+  }
 
-    try {
-        await axios.delete(`http://localhost:8000/folders/${id}`, {
+  try {
+    // Step 1: First, delete all bookmarks associated with the folder
+    const folderBookmarks = bookmarks.value.filter(bookmark => bookmark.folder_id === id.toString());
+
+    // Loop through all bookmarks and delete them
+    for (let bookmark of folderBookmarks) {
+      await axios.delete(`http://localhost:8000/bookmarks/${bookmark.bookmark_id}`, {
         headers: {
-            'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
-        });
-
-        folders.value = folders.value.filter(folder => folder.folder_id !== id);
-    } catch (error: any) {
-        console.error('Error deleting folders:', error);
+      });
+      console.log(`Deleted bookmark with ID: ${bookmark.bookmark_id}`);
     }
-}
+
+    // Step 2: Now, delete the folder itself
+    await axios.delete(`http://localhost:8000/folders/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    // Update the folders list to remove the deleted folder
+    folders.value = folders.value.filter(folder => folder.folder_id !== id);
+    console.log(`Deleted folder with ID: ${id}`);
+  } catch (error: any) {
+    console.error('Error deleting folder and bookmarks:', error);
+  }
+};
 
 // Close modal
 const closeModal = () => {
