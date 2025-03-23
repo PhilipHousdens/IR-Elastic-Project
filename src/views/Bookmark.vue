@@ -49,10 +49,60 @@ const fetchBookmark = async (id: string) => {
   }
 };
 
+const fetchAllBookmarks = async () => {
+  const token = localStorage.getItem("access_token");
+  console.log("Token retrieved:", token);
+
+  if (!token) {
+    console.error("Token is missing, please log in.");
+    return;
+  }
+
+  try {
+    const response = await axios.get("http://localhost:8000/bookmarks/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const bookmarksData = response.data;
+
+    // Fetch recipe details for each bookmark
+    const bookmarksWithRecipes = await Promise.all(
+      bookmarksData.map(async (bookmark: Bookmark) => {
+        try {
+          const recipeResponse = await axios.get(
+            `http://localhost:8000/recipes/${bookmark.recipe_id}`
+          );
+          return { ...bookmark, recipeDetails: recipeResponse.data };
+        } catch (recipeError) {
+          console.error(
+            `Error fetching recipe ${bookmark.recipe_id}:`,
+            recipeError
+          );
+          return { ...bookmark, recipeDetails: null }; // Handle recipe fetch error
+        }
+      })
+    );
+
+    bookmarks.value = bookmarksWithRecipes;
+  } catch (error: any) {
+    console.error("Error fetching all bookmarks:", error);
+  }
+};
+
 onMounted(() => {
-    const bookmarkId = (window.location.pathname.split('/').pop() as string); // Alternatively, use vue-router
+  const bookmarkId = window.location.pathname.split('/').pop(); 
+
+  if (bookmarkId && !isNaN(Number(bookmarkId))) {
+    // If an ID exists and is a valid number, fetch bookmarks for that specific folder
     fetchBookmark(bookmarkId);
+  } else {
+    // If no ID in the URL, fetch all bookmarks
+    fetchAllBookmarks();
+  }
 });
+
 </script>
 
 <template>

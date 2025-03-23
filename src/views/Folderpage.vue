@@ -8,6 +8,7 @@ interface Folder {
   folder_name: string;
   description: string;
   created_at: string;
+  average_rating: number;
 }
 
 const folders = ref<Folder[]>([]);
@@ -24,6 +25,7 @@ const fetchAllFolders = async () => {
 
   if (!token) {
     console.error('Token is missing, please log in.');
+    errorMessage.value = 'Token is missing, please log in.';
     return;
   }
 
@@ -36,8 +38,10 @@ const fetchAllFolders = async () => {
     folders.value = response.data;
   } catch (error: any) {
     console.error('Error fetching folders:', error);
+    errorMessage.value = 'Error fetching folders. Please try again later.';
   }
 };
+
 
 // Create new folder
 const createFolder = async () => {
@@ -147,6 +151,7 @@ onMounted(() => {
               </div>
               <div class="text-sm text-gray-500 ml-4 flex flex-col justify-end items-end">
                 <p>Created at: {{ new Date(folder.created_at).toLocaleString() }}</p>
+                <p>Average Rating: {{ folder.average_rating }}</p>
               </div>
             </div>
           </router-link>

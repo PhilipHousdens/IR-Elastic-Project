@@ -38,6 +38,11 @@ const routes = [
         path:'/folder/:id',
         name: 'bookmarkInFolder',
         component: Bookmark
+    },
+    {
+        path:'/bookmarks',
+        name: 'bookmarks',
+        component: Bookmark
     }
 ]
 

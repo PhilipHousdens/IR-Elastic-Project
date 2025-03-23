@@ -29,7 +29,7 @@ const logout = () => {
       <div class="space-x-4 text-lg">
         <router-link to="/">Home</router-link>
         <router-link to="/folder">Folder</router-link>
-        <router-link to="/">Bookmark</router-link>
+        <router-link to="/bookmarks">Bookmark</router-link>
         <router-link to="/">Recommendation</router-link>
       </div>
   
