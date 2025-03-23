@@ -32,8 +32,9 @@ interface Recipe {
 const recipe = ref<Recipe | null>(null);
 const folders = ref([]);  // Store the list of folders
 const showModal = ref(false);  // Show modal flag
-const folderName = ref("");  // Input for new folder name
-const description = ref("");  // Input for folder description
+const showModelCF = ref(false);
+const folderName = ref('');
+const folderDescription = ref('');
 const selectedFolderId = ref<number | null>(null);  // Store the selected folder ID
 const rating = ref(1);  // Default rating
 
@@ -99,6 +100,42 @@ const fetchUserFolders = async () => {
   }
 };
 
+// Create new folder
+const createFolder = async () => {
+  const token = localStorage.getItem('access_token');
+  console.log('Token retrieved:', token);
+
+  if (!token) {
+    console.error('Token is missing, please log in.');
+    return;
+  }
+
+  try {
+    const request = await axios.post('http://localhost:8000/folders/', 
+        {
+        folder_name: folderName.value,
+        description: folderDescription.value,
+        },
+        {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        }
+
+    );
+
+    // Optionally, you could update the folders list with the new folder
+    folders.value.push(request.data);
+    // Close the modal after successful creation
+    showModelCF.value = false;
+    // Clear input fields
+    folderName.value = '';
+    folderDescription.value = '';
+  } catch (error: any) {
+    console.error('Error creating folder:', error);
+  }
+};
+
 // Function to add bookmark
 const addToBookmark = async (recipeId: number, folderId: number, rating: number) => {
   const token = localStorage.getItem("access_token");
@@ -142,6 +179,13 @@ const handleAddToBookmark = async () => {
   } else {
     console.error('No folder selected or recipe details are missing.');
   }
+};
+
+// Close modal
+const closeModal = () => {
+  showModal.value = false;
+  folderName.value = '';
+  folderDescription.value = '';
 };
 
 // Fetch recipe details and folders on mounted
@@ -242,6 +286,12 @@ onMounted(() => {
                 </li>
               </ul>
             </div>
+            <div class="flex justify-end items-center pb-2">
+                <button @click="showModelCF = true" class="p-2 px-3 text-center bg-gray-300 rounded-4xl shadow cursor-pointer ">
+                    + New Folder
+                </button>
+            </div>
+            
   
             <!-- Rating Input Section -->
             <div class="mb-4">
@@ -263,6 +313,37 @@ onMounted(() => {
               <button @click="handleAddToBookmark" class="bg-blue-500 text-white p-2 rounded-lg">Add Bookmark</button>
             </div>
           </div>
+        </div>
+
+        <!-- + New folder -->
+        <div v-if="showModelCF" class="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+                <h2 class="text-xl font-semibold mb-4">Create New Folder</h2>
+                <div class="mb-4">
+                <label for="folderName" class="block text-sm font-medium text-gray-700">Folder Name</label>
+                <input
+                    id="folderName"
+                    v-model="folderName"
+                    type="text"
+                    class="mt-1 p-2 w-full border border-gray-300 rounded-md"
+                    placeholder="Enter folder name"
+                />
+                </div>
+                <div class="mb-4">
+                <label for="folderDescription" class="block text-sm font-medium text-gray-700">Folder Description</label>
+                <input
+                    id="folderDescription"
+                    v-model="folderDescription"
+                    type="text"
+                    class="mt-1 p-2 w-full border border-gray-300 rounded-md"
+                    placeholder="Enter folder description"
+                />
+                </div>
+                <div class="flex justify-between">
+                <button @click="closeModal" class="text-gray-600 hover:text-gray-900">Cancel</button>
+                <button @click="createFolder" class="bg-blue-500 text-white px-4 py-2 rounded-md">Create Folder</button>
+                </div>
+            </div>
         </div>
       </div>
     </div>
