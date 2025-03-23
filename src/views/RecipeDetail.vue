@@ -29,14 +29,24 @@ interface Recipe {
   ReviewCount: number;
 }
 
+interface Folder {
+  folder_id: number;
+  folder_name: string;
+  description: string;
+  created_at: string;
+}
+
 const recipe = ref<Recipe | null>(null);
-const folders = ref([]);  // Store the list of folders
+const folders = ref<Folder[]>([]);  // Store the list of folders
 const showModal = ref(false);  // Show modal flag
 const showModelCF = ref(false);
 const folderName = ref('');
 const folderDescription = ref('');
 const selectedFolderId = ref<number | null>(null);  // Store the selected folder ID
 const rating = ref(1);  // Default rating
+
+const errorMessage_book = ref('');
+const errorMessage_folder = ref('');
 
 
 const cleanInstructions = (rawInstructions: string): string[] => {
@@ -110,6 +120,14 @@ const createFolder = async () => {
     return;
   }
 
+  // Check if folder name already exists
+  const folderExists = folders.value.some(folder => folder.folder_name === folderName.value);
+  
+  if (folderExists) {
+      errorMessage_folder.value = 'Sorry, this name already exists!';
+      return; // Stop execution if folder exists
+  }
+
   try {
     const request = await axios.post('http://localhost:8000/folders/', 
         {
@@ -166,24 +184,54 @@ const addToBookmark = async (recipeId: number, folderId: number, rating: number)
   }
 };
 
+// Fetch all bookmarks for the selected folder
+const fetchBookmarksForFolder = async (folderId: number) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    console.error("Token is missing, please log in.");
+    return [];
+  }
+
+  try {
+    const response = await axios.get(`http://localhost:8000/folders/${folderId}/bookmarks/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data; // Return existing bookmarks
+  } catch (error) {
+    console.error("Error fetching bookmarks:", error);
+    return [];
+  }
+};
+
 // Handle adding to bookmark by selecting a folder
 const handleAddToBookmark = async () => {
-  if (recipe.value && selectedFolderId.value && selectedFolderId.value !== null) {
-    try {
-      const result = await addToBookmark(recipe.value.RecipeId, selectedFolderId.value, rating.value);
-      console.log('Bookmark operation result:', result);
-      showModal.value = false; // Close the modal
-    } catch (error) {
-      console.error('Failed to add bookmark:', error);
+    if (recipe.value && selectedFolderId.value && selectedFolderId.value !== null) {
+        
+        try {
+            const existingBookmarks = await fetchBookmarksForFolder(selectedFolderId.value);
+    
+            // Check if the recipe is already in the selected folder
+            const alreadyBookmarked = existingBookmarks.some(bookmark => bookmark.recipe_id === recipe.value.RecipeId);
+
+            if (alreadyBookmarked) {
+            errorMessage_book.value = 'This recipe is already in the selected folder.'
+            return; // Prevent duplicate bookmarks
+            }
+
+            const result = await addToBookmark(recipe.value.RecipeId, selectedFolderId.value, rating.value);
+            console.log('Bookmark operation result:', result);
+            showModal.value = false; // Close the modal
+        } catch (error) {
+        console.error('Failed to add bookmark:', error);
+        }
+    } else {
+        console.error('No folder selected or recipe details are missing.');
     }
-  } else {
-    console.error('No folder selected or recipe details are missing.');
-  }
 };
 
 // Close modal
 const closeModal = () => {
-  showModal.value = false;
+  showModelCF.value = false;
   folderName.value = '';
   folderDescription.value = '';
 };
@@ -210,18 +258,20 @@ onMounted(() => {
               Add To Bookmark
             </button>
           </div>
-          <h1 class="text-4xl font-bold text-center mb-4">{{ recipe.Name }}</h1>
-          <img :src="cleanImageUrls(recipe.image_link)" alt="Recipe Image" class="w-full h-auto rounded-lg shadow-md mb-6" />
+          <h1 class="text-4xl font-bold text-start mb-4">{{ recipe.Name }}</h1>
+          <img :src="cleanImageUrls(recipe.image_link)" alt="Recipe Image" class="w-1/2 mx-auto h-auto rounded-lg shadow-md mb-6" />
           
           <!-- Recipe Details Section -->
           <div class="mb-6">
             <p class="text-lg">{{ recipe.Description }}</p>
-            <p class="mt-2 text-sm text-gray-600">Published on: {{ recipe.DatePublished }}</p>
-            <p class="mt-2 text-sm text-gray-600">Recipe Category: {{ recipe.RecipeCategory }}</p>
+            <p class="mt-2 text-sm text-gray-600 underline">Published on: {{ recipe.DatePublished }}</p>
+            <p class="mt-2 text-sm text-gray-600 underline">Recipe Category: {{ recipe.RecipeCategory }}</p>
           </div>
+
+          <hr class="text-gray-300">
   
           <!-- Nutrition Facts Section -->
-          <div class="mb-6">
+          <div class="my-6">
             <h2 class="text-2xl font-semibold mb-2">Nutrition Facts:</h2>
             <ul class="list-inside space-y-1">
               <li><strong>Calories:</strong> {{ recipe.Calories }} kcal</li>
@@ -235,32 +285,40 @@ onMounted(() => {
               <li><strong>Sugar:</strong> {{ recipe.SugarContent }} g</li>
             </ul>
           </div>
-  
+
+          <hr class="text-gray-300">
+
           <!-- Recipe Instructions Section -->
-          <div class="mb-6">
+          <div class="my-6">
             <h2 class="text-2xl font-semibold mb-2">Recipe Instructions:</h2>
             <ol class="list-decimal pl-5 space-y-2">
               <li v-for="(step, index) in recipe.RecipeInstructions" :key="index" class="text-lg">{{ step }}</li>
             </ol>
           </div>
+
+          <hr class="text-gray-300">
   
           <!-- Time Section -->
-          <div class="mb-6">
+          <div class="my-6">
             <h2 class="text-2xl font-semibold mb-2">Cooking Time:</h2>
             <p><strong>Prep Time:</strong> {{ recipe.PrepTime }}</p>
             <p><strong>Cook Time:</strong> {{ recipe.CookTime }}</p>
             <p><strong>Total Time:</strong> {{ recipe.TotalTime }}</p>
           </div>
+
+          <hr class="text-gray-300">
           
           <!-- Rating Section -->
-          <div class="mb-6">
+          <div class="my-6">
             <h2 class="text-2xl font-semibold mb-2">Recipe Rating:</h2>
             <p><strong>Rating:</strong> {{ recipe.AggregatedRating }} / 5</p>
             <p><strong>Reviews:</strong> {{ recipe.ReviewCount }} reviews</p>
           </div>
+
+          <hr class="text-gray-300">
           
           <!-- Servings Section -->
-          <div class="mb-6">
+          <div class="my-6">
             <h2 class="text-2xl font-semibold mb-2">Servings:</h2>
             <p>This recipe serves {{ recipe.RecipeServings }} people.</p>
           </div>
@@ -307,6 +365,9 @@ onMounted(() => {
                 placeholder="Rate 1-5"
               />
             </div>
+            <div v-if="errorMessage_book" class="text-red-500 text-sm mt-2">
+                {{ errorMessage_book }}
+            </div>
   
             <div class="flex justify-between mt-4">
               <button @click="showModal = false" class="text-gray-500">Cancel</button>
@@ -328,6 +389,9 @@ onMounted(() => {
                     class="mt-1 p-2 w-full border border-gray-300 rounded-md"
                     placeholder="Enter folder name"
                 />
+                </div>
+                <div v-if="errorMessage_folder" class="text-red-500 text-sm mt-2">
+                    {{ errorMessage_folder }}
                 </div>
                 <div class="mb-4">
                 <label for="folderDescription" class="block text-sm font-medium text-gray-700">Folder Description</label>

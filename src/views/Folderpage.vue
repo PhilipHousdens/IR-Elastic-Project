@@ -15,6 +15,8 @@ const folderName = ref('');
 const folderDescription = ref('');
 const showModal = ref(false); // Controls whether the modal is visible
 
+const errorMessage = ref('')
+
 // Fetch all folders
 const fetchAllFolders = async () => {
   const token = localStorage.getItem('access_token');
@@ -39,13 +41,21 @@ const fetchAllFolders = async () => {
 
 // Create new folder
 const createFolder = async () => {
-  const token = localStorage.getItem('access_token');
-  console.log('Token retrieved:', token);
+    const token = localStorage.getItem('access_token');
+    console.log('Token retrieved:', token);
 
-  if (!token) {
-    console.error('Token is missing, please log in.');
-    return;
-  }
+    if (!token) {
+        console.error('Token is missing, please log in.');
+        return;
+    }
+
+    // Check if folder name already exists
+    const folderExists = folders.value.some(folder => folder.folder_name === folderName.value);
+  
+    if (folderExists) {
+        errorMessage.value = 'Sorry, this name already exists!';
+        return; // Stop execution if folder exists
+    }
 
   try {
     const request = await axios.post('http://localhost:8000/folders/', 
@@ -61,10 +71,12 @@ const createFolder = async () => {
 
     );
 
-    // Optionally, you could update the folders list with the new folder
+    // Add the new folder to the list
     folders.value.push(request.data);
+
     // Close the modal after successful creation
     showModal.value = false;
+
     // Clear input fields
     folderName.value = '';
     folderDescription.value = '';
@@ -158,6 +170,9 @@ onMounted(() => {
             class="mt-1 p-2 w-full border border-gray-300 rounded-md"
             placeholder="Enter folder name"
           />
+        </div>
+        <div v-if="errorMessage" class="text-red-500 text-sm mt-2">
+            {{ errorMessage }}
         </div>
         <div class="mb-4">
           <label for="folderDescription" class="block text-sm font-medium text-gray-700">Folder Description</label>

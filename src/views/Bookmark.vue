@@ -62,20 +62,23 @@ onMounted(() => {
         <h1 class="text-3xl font-semibold mb-6">My Bookmarks</h1>
         <ul class="space-y-4">
           <li v-for="book in bookmarks" :key="book.recipe_id">
-            <div class="flex items-center bg-white rounded-lg shadow p-4">
-              <div class="flex-1">
-                <h2 class="text-lg font-semibold" v-if="book.recipeDetails">
-                  {{ book.recipeDetails.Name }}
-                </h2>
-                <p class="text-gray-600" v-if="book.recipeDetails">
-                  {{ book.recipeDetails.Description }}
-                </p>
-                <p v-else>Recipe details not available.</p>
-              </div>
-              <div class="text-sm text-gray-500 ml-4">
-                Rating: {{ book.rating }}
-              </div>
-            </div>
+            <router-link :to="'/recipe/' + book.recipe_id">
+                <div class="flex items-center bg-white rounded-lg shadow p-4">
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold" v-if="book.recipeDetails">
+                        {{ book.recipeDetails.Name }}
+                        </h2>
+                        <p class="text-gray-600" v-if="book.recipeDetails">
+                        {{ book.recipeDetails.Description }}
+                        </p>
+                        <p v-else>Recipe details not available.</p>
+                    </div>
+                    <div class="text-sm text-gray-500 ml-4">
+                        Rating: {{ book.rating }}
+                    </div>
+                </div>
+            </router-link>
+            
           </li>
         </ul>
       </div>
