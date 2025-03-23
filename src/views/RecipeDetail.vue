@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import HeadBar from '../components/HeadBar.vue';
+import axios from 'axios';
 
 interface Recipe {
   Name: string;
@@ -74,6 +75,53 @@ onMounted(() => {
   const recipeId = (window.location.pathname.split('/').pop() as string); // Alternatively, use vue-router
   fetchRecipeDetails(recipeId);
 });
+
+const addToBookmark = async (recipeId: number, folderId: number, rating: number | 0) => {
+  console.log("Client time:", new Date());
+  const token = localStorage.getItem("access_token"); // Retrieve token from localStorage
+  console.log("Token retrieved:", token); // Log the token
+
+  if (!token) {
+    console.error("Token is missing, please log in.");
+    return;
+  }
+
+  try {
+    const response = await axios.post(
+      "http://localhost:8000/bookmarks/",
+      {
+        recipe_id: recipeId,
+        folder_id: folderId,
+        rating: rating || 1,
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("Bookmark added successfully:", response.data); // Log response data
+    return response.data; // Return the response data if needed.
+  } catch (error) {
+    console.error("Error adding bookmark:", error);
+    throw error; // Rethrow the error to be handled by the caller.
+  }
+};
+
+const handleAddToBookmark = async () => {
+  if (recipe.value) {
+    try {
+      const result = await addToBookmark(recipe.value.RecipeId, 1, recipe.value.AggregatedRating);
+      console.log('Bookmark operation result:', result);
+      // Handle successful bookmark addition (e.g., show a success message)
+    } catch (error) {
+      console.error('Failed to add bookmark:', error);
+      // Handle errors (e.g., show an error message)
+    }
+  }
+};
 </script>
 
 <template>
@@ -82,9 +130,15 @@ onMounted(() => {
             <HeadBar /> <!-- Ensure this is imported correctly -->
         </div>
         <div class="max-w-4xl mx-auto p-4" v-if="recipe">
-            
-            
             <div>
+                <div class="flex items-end justify-end">
+                    <button
+                        class="text-white bg-amber-400 p-2 rounded-3xl font-bold px-3"
+                        @click="handleAddToBookmark"
+                    >
+                        Add To Bookmark
+                    </button>
+                </div>
                 <h1 class="text-4xl font-bold text-center mb-4">{{ recipe.Name }}</h1>
                 <img :src="cleanImageUrls(recipe.image_link)" alt="Recipe Image" class="w-full h-auto rounded-lg shadow-md mb-6" />
                 
