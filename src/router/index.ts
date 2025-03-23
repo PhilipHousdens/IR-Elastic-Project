@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Homepage from '@/views/Homepage.vue'
 import LoginPage from '../views/LoginPage.vue';
 import Registerpage from '../views/Registerpage.vue';
+import RecipeDetail from '../views/RecipeDetail.vue';
 
 // Define routes
 const routes = [
@@ -19,6 +20,12 @@ const routes = [
         path: '/register',
         name: 'register-page',
         component: Registerpage
+    },
+    {
+        path: '/recipe/:id', // Dynamic route for recipe details
+        component: RecipeDetail,
+        name: 'recipeDetail',
+        props: true // Pass the route params as props to the component
     }
 ]
 

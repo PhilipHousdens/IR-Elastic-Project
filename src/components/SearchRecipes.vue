@@ -75,9 +75,11 @@ const cleanImageUrls = (rawUrls: string) => {
       <!-- Display Search Results -->
       <div v-if="recipes && recipes.length > 0" class="mt-8 w-1/2 mx-auto">
         <div v-for="recipe in recipes" :key="recipe.id" class="border-b py-4">
-          <img :src="cleanImageUrls(recipe.image_link)" alt="Recipe Image" class="w-fit h-auto"/>
-          <h3 class="text-lg font-semibold">{{ recipe.Name }}</h3>
-          <p class="text-gray-600">{{ recipe.Description }}</p>
+          <router-link :to="'/recipe/' + recipe.RecipeId">
+            <img :src="cleanImageUrls(recipe.image_link)" alt="Recipe Image" class="w-fit h-auto"/>
+            <h3 class="text-lg font-semibold">{{ recipe.Name }}</h3>
+            <p class="text-gray-600">{{ recipe.Description }}</p>
+          </router-link>
         </div>
       </div>
     </div>
