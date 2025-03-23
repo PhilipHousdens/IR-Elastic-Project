@@ -73,6 +73,29 @@ const createFolder = async () => {
   }
 };
 
+// Delete Folder
+const deletFolder = async (id: number) => {
+    const token = localStorage.getItem('access_token');
+    console.log('Token retrieved:', token);
+
+    if (!token) {
+        console.error('Token is missing, please log in.');
+        return;
+    }
+
+    try {
+        await axios.delete(`http://localhost:8000/folders/${id}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+        });
+
+        folders.value = folders.value.filter(folder => folder.folder_id !== id);
+    } catch (error: any) {
+        console.error('Error deleting folders:', error);
+    }
+}
+
 // Close modal
 const closeModal = () => {
   showModal.value = false;
@@ -110,11 +133,14 @@ onMounted(() => {
                 <h2 class="text-lg font-semibold">{{ folder.folder_name }}</h2>
                 <p class="text-gray-600">{{ folder.description }}</p>
               </div>
-              <div class="text-sm text-gray-500 ml-4">
-                Created at: {{ new Date(folder.created_at).toLocaleString() }}
+              <div class="text-sm text-gray-500 ml-4 flex flex-col justify-end items-end">
+                <p>Created at: {{ new Date(folder.created_at).toLocaleString() }}</p>
               </div>
             </div>
           </router-link>
+            <button class="text-end text-red-400 w-full py-1 px-2" @click="deletFolder(folder.folder_id); $event.stopPropagation() ">
+                DELETE
+            </button>
         </li>
       </ul>
     </div>
