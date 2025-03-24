@@ -18,6 +18,8 @@ interface Recipe {
   SugarContent: number;
   RecipeServings: number;
   RecipeInstructions: string[];
+  RecipeIngredientParts:string[];
+  RecipeIngredientQuantities: string[];
   Description: string;
   DatePublished: string;
   RecipeCategory: string;
@@ -49,15 +51,12 @@ const errorMessage_book = ref('');
 const errorMessage_folder = ref('');
 
 
-const cleanInstructions = (rawInstructions: string): string[] => {
-  // Clean up the instructions string
-  const cleaned = rawInstructions
-    .replace('c(', '') // Remove 'c(' at the beginning
-    .replace(')', '') // Remove ')' at the end
-    .split('", "') // Split by the '", "' pattern
-    .map((instruction: string) => instruction.replace(/"/g, '').trim()); // Remove quotes and trim spaces
-
-  return cleaned;
+const cleanIngredients = (rawIngredients: string): string[] => {
+  return rawIngredients
+    .replace(/^c\(/, '') // Remove leading 'c('
+    .replace(/\)$/, '') // Remove trailing ')'
+    .split('", "') // Split ingredients
+    .map(ingredient => ingredient.replace(/"/g, '').trim()); // Remove extra quotes and trim spaces
 };
 
 // Fetch recipe details by ID
@@ -65,7 +64,15 @@ const fetchRecipeDetails = async (id: string) => {
   try {
     const response = await fetch(`http://localhost:8000/recipes/${id}`);
     const data: Recipe = await response.json();
-    data.RecipeInstructions = cleanInstructions(data.RecipeInstructions)
+    
+    // Clean Recipe Instructions
+    data.RecipeInstructions = cleanIngredients(data.RecipeInstructions);
+
+    // Clean Recipe Ingredients
+    data.RecipeIngredientParts = cleanIngredients(data.RecipeIngredientParts);
+
+    data.RecipeIngredientQuantities = cleanIngredients(data.RecipeIngredientQuantities)
+
     recipe.value = data;
     console.log("Fetched recipe:", recipe.value);
   } catch (error) {
@@ -287,6 +294,28 @@ onMounted(() => {
           </div>
 
           <hr class="text-gray-300">
+          <!-- Ingredients -->
+          <div class="my-6">
+            <h2 class="text-2xl font-semibold mb-2">Ingredients:</h2>
+            <div class="flex justify-between">
+              <!-- Ingredient Names -->
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(ingredient, index) in recipe.RecipeIngredientParts" :key="index" class="text-lg">
+                  {{ ingredient }}
+                </li>
+              </ol>
+              <!-- Ingredient Quantities -->
+              <ul class="list-none pl-5 space-y-2">
+                <li v-for="(quantity, index) in recipe.RecipeIngredientQuantities" :key="index" class="text-lg">
+                  {{ quantity }}
+                </li>
+              </ul>
+            </div>
+          </div>
+            
+          </div>
+
+          <hr class="text-gray-300">
 
           <!-- Recipe Instructions Section -->
           <div class="my-6">
@@ -410,6 +439,5 @@ onMounted(() => {
             </div>
         </div>
       </div>
-    </div>
   </template>
   
