@@ -24,13 +24,13 @@ const logout = () => {
 <template>
     <div class="w-full h-16 bg-amber-400 flex items-center justify-between px-10">
       <div>
-        <p class="text-2xl">Food<b class="text-white">YUMYUM</b></p>
+        <router-link to="/">
+          <p class="text-2xl">Food<b class="text-white">YUMYUM</b></p>
+        </router-link>
       </div>
       <div class="space-x-4 text-lg">
-        <router-link to="/">Home</router-link>
         <router-link to="/folder">Folder</router-link>
         <router-link to="/bookmarks">Bookmark</router-link>
-        <router-link to="/">Recommendation</router-link>
       </div>
   
       <div>
