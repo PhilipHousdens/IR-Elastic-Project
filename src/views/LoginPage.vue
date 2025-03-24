@@ -31,6 +31,9 @@ const handleLogin = async (e: Event) => {
       }
     );
 
+    // Log the response to inspect the token
+    console.log("Login response:", response.data);
+
     // If successful, store the token (or handle success)
     const token = response.data.access_token;
     localStorage.setItem('access_token', token);
