@@ -46,7 +46,7 @@ const fetchAllFolders = async () => {
         'Authorization': `Bearer ${token}`,
       },
     });
-    folders.value = response.data;
+    folders.value = response.data.sort((a: Folder, b: Folder) => b.average_rating - a.average_rating);
   } catch (error: any) {
     console.error('Error fetching folders:', error);
     errorMessage.value = 'Error fetching folders. Please try again later.';
